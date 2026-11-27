@@ -622,7 +622,11 @@ $("addGo").onclick = async () => {
   try {
     const blobs = addMode === "photo" ? await Promise.all(photoFiles.map((f) => shrink(f, 1568))) : [];
     const images = await Promise.all(blobs.map(async (b) => ({ type: "image/jpeg", data: await b64(b) })));
-    const d = await api("/api/extract", { images, text, categories: cats() });
+    let d;
+    for (let tryNo = 1; ; tryNo++) {
+      try { d = await api("/api/extract", { images, text, categories: cats() }); break; }
+      catch (e) { if (e.status === 503 && tryNo < 3) { await new Promise((r) => setTimeout(r, 2000 * tryNo)); continue; } throw e; }
+    }
     const x = d.recipe || {};
     const draft = {
       title: String(x.title || ""), category: String(x.category || ""), tags: Array.isArray(x.tags) ? x.tags.map(String) : [],

@@ -43,7 +43,10 @@ export default async (req) => {
   }
 
   const key = process.env.ANTHROPIC_API_KEY, base = process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com";
-  if (!key) return json({ error: "Photo reading isn't switched on yet. Check that AI features are enabled in your Netlify team settings." }, 503);
+  if (!key) {
+    console.error("recipe reader: no AI key in this run", Object.keys(process.env).filter((k) => /ANTHROPIC|AI_GATEWAY/.test(k)));
+    return json({ error: "The recipe reader is waking up. Try again in a moment.", retry: true }, 503);
+  }
 
   const cats = categories.length ? categories : ["Breakfast", "Main dishes", "Sides", "Soups", "Salads", "Breads", "Desserts", "Drinks"];
   const content = [
