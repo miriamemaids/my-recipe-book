@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#c8341c">
+<title>My Recipe Book</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE everyday, warm, a kitchen tool you use with flour on your hands
+   IDEA a recipe card box: tabbed index cards, a red rule, handwriting-friendly
+   PICTURE the cards themselves; inside a recipe, the scaled ingredient card
+   COLOUR white ground, tomato red band, basil green for checked/active, saffron for favourites
+   TYPE Young Serif titles + Figtree text
+   LAYOUT phone first: band, search, chips, card grid; recipe = scaler bar, ingredients | method */
+:root{color-scheme:light dark;
+--bg:light-dark(#ffffff,#16110e);--ink:light-dark(#1f1a17,#f4ede7);--soft:light-dark(#6d625b,#b5a99f);
+--line:light-dark(#ece2da,#33281f);--card:light-dark(#ffffff,#211913);--tint:light-dark(#fbf3ee,#2a2019);
+--tomato:light-dark(#c8341c,#e2553a);--basil:light-dark(#2d7a35,#6cc070);--saffron:#f2b51b;--on:#fff}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.55 Figtree,system-ui,sans-serif;overflow-x:clip;-webkit-tap-highlight-color:transparent}
+h1,h2,h3{font-family:"Young Serif",Georgia,serif;font-weight:400;line-height:1.08;letter-spacing:-.01em;margin:0}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+.wrap{max-width:1100px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+.band{background:var(--tomato);color:var(--on);padding-top:max(18px,env(safe-area-inset-top));padding-bottom:22px}
+.band .wrap{display:flex;gap:12px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap}
+.band h1{font-size:clamp(32px,7vw,48px)}
+.band p{margin:4px 0 0;opacity:.9}
+.hbtns{display:flex;gap:8px}
+.btn{min-height:44px;padding:10px 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-weight:600;display:inline-flex;align-items:center;gap:8px;justify-content:center;white-space:nowrap}
+.btn:focus-visible,.chip:focus-visible,input:focus-visible,textarea:focus-visible,.cardlink:focus-visible{outline:3px solid var(--saffron);outline-offset:2px}
+.btn.primary{background:var(--tomato);border-color:var(--tomato);color:var(--on)}
+.band .btn{background:#fff;color:#a42812;border-color:#fff}
+.band .btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.55)}
+.btn svg{width:18px;height:18px;flex:none}
+.tools{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:12px 0 10px}
+.search{width:100%;min-height:46px;padding:10px 14px 10px 42px;border:1px solid var(--line);border-radius:12px;background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' fill='none' stroke='%23998' stroke-width='2'%3E%3Ccircle cx='8' cy='8' r='6'/%3E%3Cpath d='m13 13 4 4'/%3E%3C/svg%3E") no-repeat 14px center;font-size:16px}
+.srow{display:flex;gap:10px;align-items:center}
+.srow .search{flex:1}
+.addb{min-height:46px;padding:10px 18px;font-size:16px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}
+.chip{flex:none;min-height:38px;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-weight:500;font-size:15px}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:16px;padding:18px 0 40px}
+@media(max-width:600px){.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.rc h3{font-size:16px}.rc .body{padding:10px 11px 12px}.rc .pic .ini{font-size:44px}.meta{font-size:13px}.fav{width:36px;height:36px}}
+.rc{position:relative;border:1px solid var(--line);border-radius:14px;background:var(--card);overflow:hidden;display:flex;flex-direction:column}
+.rc .pic{aspect-ratio:4/3;background:var(--tint);display:grid;place-items:center;overflow:hidden;position:relative}
+.rc .pic img{width:100%;height:100%;object-fit:cover}
+.rc .pic .ini{font-family:"Young Serif",serif;font-size:64px;color:#fff;opacity:.95}
+.rc .pic::after{content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--tomato);opacity:.85}
+.rc .body{padding:12px 14px 14px}
+.rc h3{font-size:19px;margin-bottom:4px}
+.meta{color:var(--soft);font-size:14px}
+.cardlink{position:absolute;inset:0;border-radius:14px}
+.fav{position:absolute;top:8px;right:8px;z-index:1;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.92);display:grid;place-items:center;color:#a42812}
+.fav svg{width:20px;height:20px}
+.empty{padding:48px 0;text-align:center;color:var(--soft)}
+.empty h2{color:var(--ink);font-size:26px;margin-bottom:8px}
+/* recipe view */
+.back{margin:14px 0 4px}
+.hero{border-radius:16px;overflow:hidden;max-height:340px;margin:8px 0 16px;background:var(--tint)}
+.hero img{width:100%;max-height:340px;object-fit:cover;display:block}
+.rtitle{font-size:clamp(30px,6vw,46px);margin:8px 0 6px;text-wrap:balance}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+.tag{font-size:13px;padding:3px 10px;border-radius:999px;background:var(--tint);color:var(--soft)}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+.scaler{position:sticky;top:0;z-index:4;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+.scaler .lbl{font-weight:700}
+.mults{display:flex;gap:6px;flex-wrap:wrap}
+.mults .chip{min-width:52px}
+.mults .chip[aria-pressed=true]{background:var(--basil);border-color:var(--basil);color:#fff}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper button{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--card);font-size:20px;line-height:1}
+.stepper input{width:64px;min-height:40px;text-align:center;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:16px;font-weight:700}
+.note{font-size:14px;color:var(--soft);margin:8px 0 0}
+.cols{display:grid;grid-template-columns:minmax(0,1fr);gap:24px;padding:18px 0 40px}
+@media(min-width:820px){.cols{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}.ingcard{position:sticky;top:76px;align-self:start}}
+.ingcard{background:var(--tint);border-radius:16px;padding:18px}
+.cols h2{font-size:24px;margin-bottom:10px}
+.ings{list-style:none;margin:0;padding:0}
+.ings li{border-bottom:1px dashed var(--line)}
+.ings li:last-child{border-bottom:0}
+.ings label{display:flex;gap:12px;align-items:flex-start;padding:9px 0;cursor:pointer}
+.ings input{width:22px;height:22px;margin:2px 0 0;accent-color:var(--basil);flex:none}
+.ings b{white-space:nowrap;font-weight:700}
+.ings .done{text-decoration:line-through;color:var(--soft)}
+.ings .sec{font-family:"Young Serif",serif;font-size:17px;padding:14px 0 4px;border:0}
+.steps{list-style:none;margin:0;padding:0;counter-reset:s}
+.steps li{counter-increment:s;display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.steps li::before{content:counter(s);font-family:"Young Serif",serif;font-size:22px;color:var(--tomato);line-height:1.2}
+.steps li.done{color:var(--soft)}
+.steps li.done::before{content:"✓";color:var(--basil)}
+.notes{background:var(--tint);border-radius:12px;padding:14px 16px;margin-top:18px;white-space:pre-wrap}
+.src{margin-top:14px;overflow-wrap:anywhere}
+a{color:var(--tomato)}
+/* dialogs */
+dialog{width:min(640px,calc(100% - 24px));max-height:calc(100% - 24px);border:0;border-radius:18px;padding:0;background:var(--bg);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(20,10,5,.5)}
+.dh{display:flex;justify-content:space-between;align-items:center;padding:18px 20px 6px;gap:12px}
+.dh h2{font-size:26px}
+.x{width:44px;height:44px;border-radius:50%;border:0;background:var(--tint);font-size:22px}
+.db{padding:8px 20px 20px}
+.ways{display:grid;gap:10px}
+.way{display:grid;grid-template-columns:48px minmax(0,1fr);gap:14px;align-items:center;text-align:left;padding:14px;border-radius:14px;border:1px solid var(--line);background:var(--card);min-height:72px}
+.way .ic{width:48px;height:48px;border-radius:12px;display:grid;place-items:center;background:var(--tint);color:var(--tomato)}
+.way .ic svg{width:24px;height:24px}
+.way b{display:block;font-size:17px}
+.way span{color:var(--soft);font-size:14px}
+label.f{display:block;font-weight:600;margin:14px 0 6px}
+.in{width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:16px}
+textarea.in{min-height:150px;resize:vertical;line-height:1.5}
+.row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.hint{font-size:13px;color:var(--soft);margin:4px 0 0}
+.foot{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.thumbs img{width:84px;height:84px;object-fit:cover;border-radius:10px}
+.warn{background:light-dark(#fff4d6,#3a2e10);border-radius:12px;padding:12px 14px;margin:6px 0 4px;font-size:15px}
+.err{color:var(--tomato);font-weight:600;margin:10px 0 0}
+.busy{display:flex;align-items:center;gap:14px;padding:22px 0}
+.spin{width:34px;height:34px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--tomato);animation:sp 1s linear infinite;flex:none}
+@keyframes sp{to{transform:rotate(1turn)}}
+@media(prefers-reduced-motion:reduce){.spin{animation-duration:3s}}
+.toast{position:fixed;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:12px;display:flex;gap:14px;align-items:center;z-index:50;max-width:calc(100% - 24px)}
+.toast button{background:none;border:0;color:var(--saffron);font-weight:700;min-height:36px}
+.photoedit{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.photoedit img{width:96px;height:72px;object-fit:cover;border-radius:10px}
+@media(max-width:600px){.toast{bottom:24px}}
+[hidden]{display:none!important}
+@media(max-width:600px){.row{grid-template-columns:minmax(0,1fr)}.band .btn span{display:none}.acts .btn{padding:10px 13px}}
+@media print{.band,.tools,.acts,.scaler,.back,.fav,.toast{display:none!important}body{background:#fff;color:#000}.ingcard{background:none;padding:0}.cols{grid-template-columns:1fr 1.4fr}}
+</style>
+</head>
+<body>
+<header class="band"><div class="wrap">
+  <div><h1>My Recipe Book</h1><p id="count">Opening your recipes…</p></div>
+  <div class="hbtns">
+  </div>
+</div></header>
+
+<div id="home">
+  <div class="tools"><div class="wrap">
+    <div class="srow"><input class="search" id="q" type="search" placeholder="Search recipes" autocomplete="off"><button class="btn primary addb" id="addBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg>Add recipe</button></div>
+    <div class="chips" id="chips"></div>
+  </div></div>
+  <main class="wrap"><div class="grid" id="grid"></div><div id="emptyBox"></div></main>
+</div>
+
+<main id="view" class="wrap" hidden></main>
+
+<dialog id="addDlg"><div class="dh"><h2>Add a recipe</h2><button class="x" data-close aria-label="Close">×</button></div><div class="db">
+  <div id="addPick" class="ways">
+    <button class="way" id="wPhoto"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span><b>Photo or screenshot</b><span>Cookbook page, handwritten card, or a screenshot of a website</span></span></button>
+    <button class="way" id="wText"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6"/></svg></span><span><b>Paste text or a link</b><span>From a website, a message or an email</span></span></button>
+    <button class="way" id="wType"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></span><span><b>Type it in</b><span>Start with a blank card</span></span></button>
+  </div>
+  <div id="addPhoto" hidden>
+    <p class="hint" style="font-size:15px">Add up to 4 photos (for example, the front and back of a card).</p>
+    <input type="file" id="photoIn" accept="image/*" multiple class="in">
+    <div class="thumbs" id="thumbs"></div>
+    <label style="display:flex;gap:10px;align-items:center;margin-top:6px"><input type="checkbox" id="keepPhoto" checked style="width:20px;height:20px"> Keep the first photo as the recipe picture</label>
+  </div>
+  <div id="addText" hidden>
+    <label class="f" for="pasteIn">Recipe text</label>
+    <textarea class="in" id="pasteIn" placeholder="Paste the ingredients and directions here"></textarea>
+    <label class="f" for="linkIn">Link (optional)</label>
+    <input class="in" id="linkIn" type="url" placeholder="https://">
+    <p class="hint">The app can't open websites itself, so paste the recipe text too, or use a screenshot instead. The link is saved so you can always get back to the original.</p>
+  </div>
+  <div id="addBusy" class="busy" hidden><div class="spin"></div><div><b>Reading your recipe…</b><div class="hint">Usually 10–30 seconds.</div></div></div>
+  <p class="err" id="addErr" hidden></p>
+  <div class="foot" id="addFoot" hidden><button class="btn" id="addBack">Back</button><button class="btn primary" id="addGo">Read recipe</button></div>
+</div></dialog>
+
+<dialog id="editDlg"><form id="editForm" method="dialog"><div class="dh"><h2 id="editH">Recipe</h2><button type="button" class="x" data-close aria-label="Close">×</button></div><div class="db">
+  <div class="warn" id="unclear" hidden></div>
+  <label class="f" for="eTitle">Name</label><input class="in" id="eTitle" required>
+  <div class="row">
+    <div><label class="f" for="eCat">Category</label><input class="in" id="eCat" list="catList" placeholder="Desserts"><datalist id="catList"></datalist></div>
+    <div><label class="f" for="eTime">Total time</label><input class="in" id="eTime" placeholder="45 min"></div>
+  </div>
+  <div class="row">
+    <div><label class="f" for="eServ">Makes</label><input class="in" id="eServ" type="number" min="0.5" step="any" value="4" required></div>
+    <div><label class="f" for="eYield">What it makes</label><input class="in" id="eYield" placeholder="servings"></div>
+  </div>
+  <label class="f" for="eIng">Ingredients</label><textarea class="in" id="eIng" placeholder="2 cups flour&#10;1 1/2 tsp salt&#10;## For the glaze&#10;1 cup powdered sugar"></textarea>
+  <p class="hint">One per line, amount first. Start a line with ## for a section like "## For the glaze".</p>
+  <label class="f" for="eSteps">Directions</label><textarea class="in" id="eSteps" placeholder="One step per line"></textarea>
+  <label class="f" for="eNotes">Notes</label><textarea class="in" id="eNotes" style="min-height:80px" placeholder="Tips, substitutions, who it came from"></textarea>
+  <label class="f" for="eTags">Tags</label><input class="in" id="eTags" placeholder="chanukah, pareve, chocolate">
+  <label class="f" for="eSrc">Source link</label><input class="in" id="eSrc" type="url" placeholder="https://">
+  <label class="f">Photo</label>
+  <div class="photoedit"><img id="ePhotoPrev" alt="" hidden><input type="file" id="ePhoto" accept="image/*"><button type="button" class="btn" id="eNoPhoto" hidden>Remove photo</button></div>
+  <p class="err" id="editErr" hidden></p>
+  <div class="foot"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary" id="saveBtn">Save recipe</button></div>
+</div></form></dialog>
+
+
+<dialog id="copyDlg"><div class="dh"><h2>Copy this recipe</h2><button class="x" data-close aria-label="Close">×</button></div><div class="db">
+  <p class="hint">Select all and copy, then paste it into a text or WhatsApp.</p><textarea class="in" id="copyTa" style="min-height:260px" readonly></textarea>
+</div></dialog>
+
+<div class="toast" id="toast" hidden><span id="toastT"></span><button id="toastB" hidden>Undo</button></div>
+
+<script src="scale.js"></script>
+<script>
+{
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+const ICON = {
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
+  heartF: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
+  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V4M8 8l4-4 4 4M5 13v6h14v-6"/></svg>',
+  copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg>',
+  print: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 9V4h10v5M7 17H4v-8h16v8h-3M7 14h10v6H7z"/></svg>',
+  sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg>',
+};
+const TINTS = ["#c8341c", "#d9961a", "#2d7a35", "#7b3f6e", "#a8642a", "#2f6f8f"];
+const tint = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return TINTS[h % TINTS.length]; };
+const MULTS = [[0.5, "½×"], [1, "1×"], [1.5, "1½×"], [2, "2×"], [3, "3×"]];
+
+let recipes = [];
+const editor = true;
+let favs = new Set(store.get("rb-favs", [])), filter = { q: "", cat: "", fav: false }, mults = {}, checks = {};
+let editing = null, pendingPhoto = null, removePhoto = false, wake = null, wantWake = false;
+
+/* ---------- server ---------- */
+async function api(path, body) {
+  const opts = body === undefined ? {} : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) };
+  const res = await fetch(path, opts);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw Object.assign(new Error(data.error || "Something went wrong. Try again."), { status: res.status });
+  return data;
+}
+async function load() {
+  try {
+    const d = await api("/api/recipes");
+    recipes = d.recipes || [];
+    paintLock(); route();
+  } catch {
+    $("count").textContent = "Couldn't load recipes.";
+    $("emptyBox").innerHTML = '<div class="empty"><h2>Can\'t reach your recipe book</h2><p>Check your connection.</p><button class="btn primary" id="retry">Try again</button></div>';
+    $("retry").onclick = () => { $("emptyBox").innerHTML = ""; load(); };
+  }
+}
+
+/* ---------- home ---------- */
+const cats = () => [...new Set(recipes.map((r) => r.category))].sort((a, b) => a.localeCompare(b));
+function paintHome() {
+  const n = recipes.length;
+  $("count").textContent = n + (n === 1 ? " recipe" : " recipes") + " · " + cats().length + (cats().length === 1 ? " category" : " categories");
+  const chips = [["", "All"], ["♥", "Favorites"], ...cats().map((c) => [c, c])];
+  $("chips").innerHTML = chips.map(([v, l]) => {
+    const on = v === "♥" ? filter.fav : !filter.fav && filter.cat === v;
+    return `<button class="chip" data-cat="${esc(v)}" aria-pressed="${on}">${v === "♥" ? "♥ " : ""}${esc(l)}</button>`;
+  }).join("");
+  const q = filter.q.toLowerCase().trim();
+  const list = recipes.filter((r) => (!filter.fav || favs.has(r.id)) && (filter.fav || !filter.cat || r.category === filter.cat) &&
+    (!q || [r.title, r.ingredients, r.category, (r.tags || []).join(" "), r.notes].join(" ").toLowerCase().includes(q)))
+    .sort((a, b) => a.title.localeCompare(b.title));
+  $("grid").innerHTML = list.map((r) => `<article class="rc">
+    <div class="pic" style="${r.photo ? "" : "background:" + tint(r.title)}">${r.photo ? `<img src="${esc(r.photo)}" alt="" loading="lazy">` : `<span class="ini">${esc(r.title.trim()[0] || "?")}</span>`}</div>
+    <div class="body"><h3>${esc(r.title)}</h3><div class="meta">${esc(r.category)} · ${esc(fmtN(r.servings))} ${esc(r.yieldLabel || "servings")}${r.time ? " · " + esc(r.time) : ""}</div></div>
+    <a class="cardlink" href="#recipe-${esc(r.id)}" aria-label="${esc(r.title)}"></a>
+    <button class="fav" data-fav="${esc(r.id)}" aria-label="Favorite" aria-pressed="${favs.has(r.id)}">${favs.has(r.id) ? ICON.heartF : ICON.heart}</button>
+  </article>`).join("");
+  $("emptyBox").innerHTML = list.length ? "" : recipes.length
+    ? `<div class="empty"><h2>No matches</h2><p>${filter.fav ? "Tap the heart on a recipe to save it here." : "Try a different word or category."}</p></div>`
+    : `<div class="empty"><h2>Your book is empty</h2><p>Tap Add recipe to add one from a photo, a link, or by typing it.</p></div>`;
+}
+const fmtN = (n) => window.Scale.frac(n);
+$("chips").onclick = (e) => {
+  const b = e.target.closest("[data-cat]"); if (!b) return;
+  const v = b.dataset.cat;
+  if (v === "♥") { filter.fav = !filter.fav; filter.cat = ""; } else { filter.fav = false; filter.cat = v; }
+  paintHome();
+};
+$("q").oninput = (e) => { filter.q = e.target.value; paintHome(); };
+document.addEventListener("click", (e) => {
+  const f = e.target.closest("[data-fav]"); if (!f) return;
+  e.preventDefault();
+  const id = f.dataset.fav; favs.has(id) ? favs.delete(id) : favs.add(id); store.set("rb-favs", [...favs]);
+  route();
+});
+
+/* ---------- recipe view ---------- */
+function lines(s) { return String(s || "").split("\n").map((x) => x.trim()).filter(Boolean); }
+function scaledIngredients(r, m) { return lines(r.ingredients).map((l) => window.Scale.scaleLine(l, m)).filter(Boolean); }
+function curMult(r) { return mults[r.id] || 1; }
+
+function paintView(r) {
+  const m = curMult(r), serv = r.servings * m, ch = checks[r.id] || (checks[r.id] = { i: new Set(), s: new Set() });
+  const ings = scaledIngredients(r, m);
+  const src = /^https?:\/\//.test(r.source || "") ? r.source : "";
+  const multOn = (v) => Math.abs(m - v) < 1e-9;
+  $("view").innerHTML = `
+    <button class="btn back" id="backBtn">‹ All recipes</button>
+    ${r.photo ? `<div class="hero"><img src="${esc(r.photo)}" alt=""></div>` : ""}
+    <h1 class="rtitle">${esc(r.title)}</h1>
+    <div class="meta">${esc(r.category)}${r.time ? " · " + esc(r.time) : ""}</div>
+    ${(r.tags || []).length ? `<div class="tags">${r.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}
+    <div class="acts">
+      <button class="btn" data-fav="${esc(r.id)}">${favs.has(r.id) ? ICON.heartF + "Saved" : ICON.heart + "Save"}</button>
+      <button class="btn" id="shareBtn">${ICON.share}Share</button>
+      <button class="btn" id="copyBtn">${ICON.copy}Copy text</button>
+      <button class="btn" id="printBtn">${ICON.print}Print</button>
+      ${"wakeLock" in navigator ? `<button class="btn" id="wakeBtn" aria-pressed="${!!wake}">${ICON.sun}${wake ? "Screen stays on" : "Keep screen on"}</button>` : ""}
+      ${editor ? `<button class="btn" id="editBtn">${ICON.edit}Edit</button><button class="btn" id="delBtn">${ICON.trash}Delete</button>` : ""}
+    </div>
+    <div class="scaler">
+      <span class="lbl">Make</span>
+      <div class="mults">${MULTS.map(([v, l]) => `<button class="chip" data-m="${v}" aria-pressed="${multOn(v)}">${l}</button>`).join("")}</div>
+      <div class="stepper"><button id="sMinus" aria-label="Fewer">−</button><input id="sIn" inputmode="decimal" value="${esc(fmtN(serv))}" aria-label="${esc(r.yieldLabel || "servings")}"><button id="sPlus" aria-label="More">+</button><span>${esc(r.yieldLabel || "servings")}</span></div>
+    </div>
+    ${m !== 1 ? `<p class="note">Amounts are ${esc(fmtN(m))}× the original. Pan size and cooking times don't scale on their own, so keep an eye on them.</p>` : ""}
+    <div class="cols">
+      <section class="ingcard"><h2>Ingredients</h2><ul class="ings">${ings.map((x, i) => x.header
+        ? `<li class="sec">${esc(x.header)}</li>`
+        : `<li><label><input type="checkbox" data-i="${i}" ${ch.i.has(i) ? "checked" : ""}><span class="${ch.i.has(i) ? "done" : ""}">${x.amount ? `<b>${esc(x.amount)}</b> ` : ""}${esc(x.rest)}</span></label></li>`).join("")}</ul></section>
+      <section><h2>Directions</h2><ol class="steps">${lines(r.steps).map((s, i) => `<li data-s="${i}" class="${ch.s.has(i) ? "done" : ""}"><span>${esc(s)}</span></li>`).join("")}</ol>
+        ${r.notes ? `<div class="notes"><b>Notes</b><br>${esc(r.notes)}</div>` : ""}
+        ${src ? `<p class="src">Original recipe: <a href="${esc(src)}" target="_blank" rel="noopener">${esc(src.replace(/^https?:\/\/(www\.)?/, "").slice(0, 60))}</a></p>` : ""}
+      </section>
+    </div>`;
+  const setM = (v) => { mults[r.id] = Math.max(0.05, Math.min(50, v)); paintView(r); };
+  $("backBtn").onclick = () => { location.hash = ""; };
+  $("view").querySelectorAll("[data-m]").forEach((b) => (b.onclick = () => setM(+b.dataset.m)));
+  const step = r.servings >= 4 ? 1 : 0.5;
+  $("sMinus").onclick = () => { const next = Math.max(step, Math.round((serv - step) / step) * step); setM(next / r.servings); };
+  $("sPlus").onclick = () => { const next = Math.round((serv + step) / step) * step; setM(next / r.servings); };
+  $("sIn").onchange = (e) => { const v = window.Scale.val(e.target.value) || parseFloat(e.target.value); if (v > 0) setM(v / r.servings); else e.target.value = fmtN(serv); };
+  $("view").querySelectorAll("[data-i]").forEach((c) => (c.onchange = () => { const i = +c.dataset.i; c.checked ? ch.i.add(i) : ch.i.delete(i); c.nextElementSibling.className = c.checked ? "done" : ""; }));
+  $("view").querySelectorAll("[data-s]").forEach((li) => (li.onclick = () => { const i = +li.dataset.s; ch.s.has(i) ? ch.s.delete(i) : ch.s.add(i); li.classList.toggle("done"); }));
+  $("shareBtn").onclick = () => shareRecipe(r);
+  $("copyBtn").onclick = () => copyText(recipeText(r));
+  $("printBtn").onclick = () => window.print();
+  if ($("wakeBtn")) $("wakeBtn").onclick = toggleWake;
+  if (editor) { $("editBtn").onclick = () => openEditor(r); $("delBtn").onclick = () => delRecipe(r); }
+}
+
+function recipeText(r) {
+  const m = curMult(r);
+  const ing = scaledIngredients(r, m).map((x) => (x.header ? "\n" + x.header + ":" : "• " + (x.amount ? x.amount + " " : "") + x.rest)).join("\n");
+  const st = lines(r.steps).map((s, i) => i + 1 + ". " + s).join("\n");
+  return `${r.title}\nMakes ${fmtN(r.servings * m)} ${r.yieldLabel || "servings"}${m !== 1 ? ` (${fmtN(m)}× the original)` : ""}${r.time ? " · " + r.time : ""}\n\nINGREDIENTS\n${ing}\n\nDIRECTIONS\n${st}${r.notes ? "\n\nNOTES\n" + r.notes : ""}\n\n${location.origin}/#recipe-${r.id}`;
+}
+async function shareRecipe(r) {
+  const url = location.origin + "/#recipe-" + r.id;
+  if (navigator.share) { try { await navigator.share({ title: r.title, text: r.title + " – from my recipe book", url }); return; } catch (e) { if (e.name === "AbortError") return; } }
+  try { await navigator.clipboard.writeText(url); toast("Link copied. Anyone can open it, no sign-in needed."); } catch { copyText(url); }
+}
+async function copyText(t) {
+  try { await navigator.clipboard.writeText(t); toast("Recipe copied. Paste it into a text or WhatsApp."); }
+  catch { $("copyTa").value = t; $("copyDlg").showModal(); $("copyTa").select(); }
+}
+async function toggleWake() {
+  try {
+    if (wake) { wantWake = false; await wake.release(); wake = null; }
+    else { wantWake = true; wake = await navigator.wakeLock.request("screen"); wake.addEventListener("release", () => { wake = null; if (document.visibilityState === "visible") wantWake = false; route(); }); }
+  } catch { toast("Your browser won't keep the screen on here."); }
+  route();
+}
+
+/* ---------- routing ---------- */
+function route() {
+  const id = (location.hash.match(/^#recipe-([a-z0-9-]+)$/) || [])[1];
+  const r = id && recipes.find((x) => x.id === id);
+  $("home").hidden = !!r; $("view").hidden = !r;
+  if (r) { paintView(r); document.title = r.title + " · My Recipe Book"; }
+  else { paintHome(); document.title = "My Recipe Book"; }
+  paintLock();
+}
+let lastHash = location.hash;
+window.addEventListener("hashchange", () => { const toView = location.hash.startsWith("#recipe-"); route(); if (toView || lastHash.startsWith("#recipe-")) window.scrollTo(0, 0); lastHash = location.hash; });
+
+function paintLock() {}
+
+/* ---------- adding ---------- */
+let addMode = "", photoFiles = [];
+function addShow(mode) {
+  addMode = mode;
+  $("addPick").hidden = !!mode; $("addPhoto").hidden = mode !== "photo"; $("addText").hidden = mode !== "text";
+  $("addFoot").hidden = !mode; $("addBusy").hidden = true; $("addErr").hidden = true; $("addGo").disabled = false;
+}
+$("addBtn").onclick = openAdd;
+function openAdd() { photoFiles = []; $("thumbs").innerHTML = ""; $("photoIn").value = ""; $("pasteIn").value = ""; $("linkIn").value = ""; addShow(""); $("addDlg").showModal(); }
+$("wPhoto").onclick = () => { addShow("photo"); $("photoIn").click(); };
+$("wText").onclick = () => addShow("text");
+$("wType").onclick = () => { $("addDlg").close(); openEditor(null); };
+$("addBack").onclick = () => addShow("");
+$("photoIn").onchange = (e) => {
+  photoFiles = [...e.target.files].slice(0, 4);
+  $("thumbs").innerHTML = "";
+  for (const f of photoFiles) { const im = document.createElement("img"); im.src = URL.createObjectURL(f); im.alt = ""; $("thumbs").append(im); }
+};
+
+// Shrink a photo before sending: faster uploads, cheaper reading.
+async function shrink(file, max = 1600, q = 0.85) {
+  const bmp = await createImageBitmap(file).catch(() => null);
+  if (!bmp) throw new Error("That photo couldn't be opened. Try a JPEG or PNG.");
+  const s = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas"); c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+  c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+  return new Promise((res) => c.toBlob(res, "image/jpeg", q));
+}
+const b64 = (blob) => new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(",")[1]); fr.readAsDataURL(blob); });
+
+$("addGo").onclick = async () => {
+  $("addErr").hidden = true;
+  const text = $("pasteIn").value.trim(), link = $("linkIn").value.trim();
+  if (addMode === "photo" && !photoFiles.length) { $("addErr").textContent = "Choose at least one photo."; $("addErr").hidden = false; return; }
+  if (addMode === "text" && !text) {
+    $("addErr").textContent = link ? "Paste the recipe text too. The app can't open websites itself. You can also take a screenshot and use Photo instead." : "Paste the recipe text first.";
+    $("addErr").hidden = false; return;
+  }
+  $("addGo").disabled = true; $("addBusy").hidden = false; $("addPhoto").hidden = $("addText").hidden = true;
+  try {
+    const blobs = addMode === "photo" ? await Promise.all(photoFiles.map((f) => shrink(f, 1568))) : [];
+    const images = await Promise.all(blobs.map(async (b) => ({ type: "image/jpeg", data: await b64(b) })));
+    const d = await api("/api/extract", { images, text, categories: cats() });
+    const x = d.recipe || {};
+    const draft = {
+      title: String(x.title || ""), category: String(x.category || ""), tags: Array.isArray(x.tags) ? x.tags.map(String) : [],
+      servings: Number(x.servings) > 0 ? Number(x.servings) : 4, yieldLabel: String(x.yieldLabel || "servings"), time: String(x.time || ""),
+      ingredients: (Array.isArray(x.ingredients) ? x.ingredients : []).map(String).join("\n"),
+      steps: (Array.isArray(x.steps) ? x.steps : []).map(String).join("\n"), notes: String(x.notes || ""), source: /^https?:\/\//.test(link) ? link : "",
+    };
+    $("addDlg").close();
+    openEditor(null, draft, Array.isArray(x.unclear) ? x.unclear.map(String) : [], addMode === "photo" && $("keepPhoto").checked ? blobs[0] : null);
+  } catch (err) {
+    $("addBusy").hidden = true; $("addGo").disabled = false; addShow(addMode);
+    $("addErr").textContent = err.message; $("addErr").hidden = false;
+  }
+};
+
+/* ---------- editor ---------- */
+function openEditor(r, draft, unclear = [], photoBlob = null) {
+  editing = r; pendingPhoto = photoBlob; removePhoto = false;
+  const d = r || draft || {};
+  $("editH").textContent = r ? "Edit recipe" : draft ? "Check and save" : "New recipe";
+  $("eTitle").value = d.title || ""; $("eCat").value = d.category || ""; $("eTime").value = d.time || "";
+  $("eServ").value = d.servings || 4; $("eYield").value = d.yieldLabel || "servings";
+  $("eIng").value = d.ingredients || ""; $("eSteps").value = d.steps || ""; $("eNotes").value = d.notes || "";
+  $("eTags").value = (d.tags || []).join(", "); $("eSrc").value = d.source || ""; $("ePhoto").value = "";
+  $("catList").innerHTML = [...new Set([...cats(), "Breakfast", "Main dishes", "Sides", "Soups", "Salads", "Breads", "Desserts", "Drinks"])].map((c) => `<option value="${esc(c)}">`).join("");
+  $("unclear").hidden = !draft;
+  if (draft) $("unclear").textContent = unclear.length ? "Please double-check these, they were hard to read: " + unclear.join(", ") : "Here's what I read. Give it a quick look, then save.";
+  showPhotoPrev(photoBlob ? URL.createObjectURL(photoBlob) : d.photo || "");
+  $("editErr").hidden = true; $("saveBtn").disabled = false;
+  $("editDlg").showModal(); $("editDlg").querySelector(".db").scrollTop = 0;
+}
+function showPhotoPrev(src) { $("ePhotoPrev").hidden = !src; $("ePhotoPrev").src = src || ""; $("eNoPhoto").hidden = !src; }
+$("ePhoto").onchange = async (e) => { const f = e.target.files[0]; if (!f) return; try { pendingPhoto = await shrink(f); removePhoto = false; showPhotoPrev(URL.createObjectURL(pendingPhoto)); } catch (err) { toast(err.message); } };
+$("eNoPhoto").onclick = () => { pendingPhoto = null; removePhoto = true; $("ePhoto").value = ""; showPhotoPrev(""); };
+const newId = () => (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).toLowerCase();
+
+$("editForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const title = $("eTitle").value.trim(); if (!title) return;
+  $("saveBtn").disabled = true; $("editErr").hidden = true;
+  try {
+    let photo = removePhoto ? "" : editing?.photo || "";
+    if (pendingPhoto) {
+      const res = await fetch("/api/photo", { method: "POST", headers: { "content-type": "image/jpeg" }, body: pendingPhoto });
+      const d = await res.json().catch(() => ({})); if (!res.ok) throw new Error(d.error || "Photo upload failed.");
+      photo = d.url;
+    }
+    const recipe = {
+      id: editing?.id || newId(), title, category: $("eCat").value.trim() || "Other", time: $("eTime").value.trim(),
+      servings: parseFloat($("eServ").value) || 4, yieldLabel: $("eYield").value.trim() || "servings",
+      ingredients: $("eIng").value, steps: $("eSteps").value, notes: $("eNotes").value.trim(),
+      tags: $("eTags").value.split(",").map((t) => t.trim()).filter(Boolean), source: $("eSrc").value.trim(), photo, createdAt: editing?.createdAt,
+    };
+    const d = await api("/api/recipes", { action: "save", recipe });
+    recipes = d.recipes; $("editDlg").close();
+    delete mults[recipe.id]; delete checks[recipe.id];
+    if (location.hash === "#recipe-" + recipe.id) route(); else location.hash = "recipe-" + recipe.id;
+    toast(editing ? "Saved." : "Recipe added.");
+  } catch (err) { $("editErr").textContent = err.message; $("editErr").hidden = false; }
+  $("saveBtn").disabled = false;
+};
+
+async function delRecipe(r) {
+  try {
+    const d = await api("/api/recipes", { action: "delete", id: r.id }); recipes = d.recipes; location.hash = "";
+    route();
+    toast("Deleted “" + r.title + "”", async () => { try { const d2 = await api("/api/recipes", { action: "save", recipe: r }); recipes = d2.recipes; route(); toast("Restored."); } catch (e) { toast(e.message); } });
+  } catch (e) { toast(e.message); }
+}
+
+/* ---------- small stuff ---------- */
+let toastTimer;
+function toast(msg, undo) {
+  $("toastT").textContent = msg; $("toastB").hidden = !undo; $("toastB").onclick = () => { $("toast").hidden = true; undo && undo(); };
+  $("toast").hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => ($("toast").hidden = true), undo ? 7000 : 3500);
+}
+document.querySelectorAll("[data-close]").forEach((b) => (b.onclick = () => b.closest("dialog").close()));
+document.querySelectorAll("dialog").forEach((d) => d.addEventListener("click", (e) => { if (e.target === d) d.close(); }));
+document.addEventListener("visibilitychange", async () => { if (wantWake && !wake && document.visibilityState === "visible") { wantWake = false; await toggleWake(); } });
+
+// Clean up the old app's offline cache if this site used it before.
+if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
+
+load();
+}
+</script>
+</body>
+</html>
