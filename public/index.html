@@ -97,11 +97,14 @@ button{cursor:pointer}
 .steps li{counter-increment:s;display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer}
 .steps li::before{content:counter(s);font-family:"Young Serif",serif;font-size:22px;color:var(--tomato);line-height:1.2}
 .steps li.done{color:var(--soft)}
+.steps li.ssec{display:block;counter-increment:none;cursor:default;font-family:"Young Serif",serif;font-size:18px;padding:16px 0 4px;border-bottom:0}
+.steps li.ssec::before{content:none}
 .pack{color:var(--soft);white-space:nowrap}
 .uses{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .use{font-size:14px;line-height:1.3;background:var(--tint);border-radius:8px;padding:4px 9px;max-width:100%;overflow-wrap:anywhere}
 .steps li.done .use{opacity:.6}
 .steps li.done::before{content:"✓";color:var(--basil)}
+.credit{margin:6px 0 0;font-weight:600}
 .notes{background:var(--tint);border-radius:12px;padding:14px 16px;margin-top:18px;white-space:pre-wrap}
 .src{margin-top:14px;overflow-wrap:anywhere}
 a{color:var(--tomato)}
@@ -181,7 +184,7 @@ textarea.in{min-height:150px;resize:vertical;line-height:1.5}
 <dialog id="addDlg"><div class="dh"><h2>Add a recipe</h2><button class="x" data-close aria-label="Close">×</button></div><div class="db">
   <div id="addPick" class="ways">
     <button class="way" id="wPhoto"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span><b>Photo or screenshot</b><span>Cookbook page, handwritten card, or a screenshot of a website</span></span></button>
-    <button class="way" id="wText"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6"/></svg></span><span><b>Paste text or a link</b><span>From a website, a message or an email</span></span></button>
+    <button class="way" id="wText"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1M9 10h6M9 14h6"/></svg></span><span><b>Paste a link or text</b><span>A recipe website like kosher.com, a message or an email</span></span></button>
     <button class="way" id="wType"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></span><span><b>Type it in</b><span>Start with a blank card</span></span></button>
   </div>
   <div id="addPhoto" hidden>
@@ -195,7 +198,7 @@ textarea.in{min-height:150px;resize:vertical;line-height:1.5}
     <textarea class="in" id="pasteIn" placeholder="Paste the ingredients and directions here"></textarea>
     <label class="f" for="linkIn">Link (optional)</label>
     <input class="in" id="linkIn" type="url" placeholder="https://">
-    <p class="hint">The app can't open websites itself, so paste the recipe text too, or use a screenshot instead. The link is saved so you can always get back to the original.</p>
+    <p class="hint">Paste a link on its own and the app fills in the recipe from the page (works with kosher.com and most recipe sites). If a site doesn't work, paste the recipe text or use a screenshot.</p>
   </div>
   <div id="addBusy" class="busy" hidden><div class="spin"></div><div><b>Reading your recipe…</b><div class="hint">Usually 10–30 seconds.</div></div></div>
   <p class="err" id="addErr" hidden></p>
@@ -291,7 +294,7 @@ function paintHome() {
   }).join("");
   const q = filter.q.toLowerCase().trim();
   const list = recipes.filter((r) => (!filter.fav || favs.has(r.id)) && (filter.fav || !filter.cat || r.category === filter.cat) &&
-    (!q || [r.title, r.ingredients, r.category, (r.tags || []).join(" "), r.notes].join(" ").toLowerCase().includes(q)))
+    (!q || [r.title, r.ingredients, r.category, (r.tags || []).join(" "), r.notes, r.credit].join(" ").toLowerCase().includes(q)))
     .sort((a, b) => a.title.localeCompare(b.title));
   $("grid").innerHTML = list.map((r) => `<article class="rc">
     <div class="pic" style="${r.photo ? "" : "background:" + tint(r.title)}">${r.photo ? `<img src="${esc(r.photo)}" alt="" loading="lazy">` : `<span class="ini">${esc(r.title.trim()[0] || "?")}</span>`}</div>
@@ -334,7 +337,7 @@ function stepAmounts(steps, ings) {
   const items = [];
   ings.forEach((x, i) => {
     if (x.header || !x.amount) return;
-    const label = x.rest.split(/,|\(/)[0].trim();
+    const label = x.rest.replace(/\([^)]*\)/g, " ").split(",")[0].replace(/\s+/g, " ").trim();
     const toks = words(x.rest);
     const core = words(label).filter((w) => !STOP.has(w));
     if (!core.length) return;
@@ -342,6 +345,7 @@ function stepAmounts(steps, ings) {
   });
   const used = new Set();
   return steps.map((st) => {
+    if (isSec(st)) return [];
     const EXC = /\b(except|without|but not|reserving|saving)\b[^.;]*/gi;
     const excluded = new Set(words((st.match(EXC) || []).join(" ")));
     const text = st.replace(EXC, " ");
@@ -359,6 +363,7 @@ function stepAmounts(steps, ings) {
     return picks.sort((a, b) => a.i - b.i);
   });
 }
+const isSec = (s) => /:$/.test(s) && s.length < 50;
 function lines(s) { return String(s || "").split("\n").map((x) => x.trim()).filter(Boolean); }
 // How much of a store package an amount is, e.g. 2 cups powdered sugar ≈ ½ box (a 1-lb box holds about 3¾ cups, per Domino).
 const PACKS = [[/\b(powdered|confectioners?'?|icing|10-?x)\b.*\bsugar\b/i, 3.75, "box", "boxes"]];
@@ -382,6 +387,7 @@ function paintView(r) {
     ${r.photo ? `<div class="hero"><img src="${esc(r.photo)}" alt=""></div>` : ""}
     <h1 class="rtitle">${esc(r.title)}</h1>
     <div class="meta">${esc(r.category)}${r.time ? " · " + esc(r.time) : ""}</div>
+    ${r.credit ? `<p class="credit">${src ? `<a href="${esc(src)}" target="_blank" rel="noopener">${esc(r.credit)}</a>` : esc(r.credit)}</p>` : ""}
     ${(r.tags || []).length ? `<div class="tags">${r.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}
     <div class="acts">
       <button class="btn" data-fav="${esc(r.id)}">${favs.has(r.id) ? ICON.heartF + "Saved" : ICON.heart + "Save"}</button>
@@ -401,7 +407,7 @@ function paintView(r) {
       <section class="ingcard"><h2>Ingredients</h2><ul class="ings">${ings.map((x, i) => x.header
         ? `<li class="sec">${esc(x.header)}</li>`
         : `<li><label><input type="checkbox" data-i="${i}" ${ch.i.has(i) ? "checked" : ""}><span class="${ch.i.has(i) ? "done" : ""}">${x.amount ? `<b>${esc(x.amount)}</b> ` : ""}${esc(x.rest)}${x.pack ? ` <span class="pack">(${esc(x.pack)})</span>` : ""}</span></label></li>`).join("")}</ul></section>
-      <section><h2>Directions</h2><ol class="steps">${lines(r.steps).map((s, i) => `<li data-s="${i}" class="${ch.s.has(i) ? "done" : ""}"><div><span>${esc(s)}</span>${uses[i].length ? `<div class="uses">${uses[i].map((u) => `<span class="use"><b>${esc(u.amount)}</b> ${esc(u.label)}${u.pack ? ` (${esc(u.pack)})` : ""}</span>`).join("")}</div>` : ""}</div></li>`).join("")}</ol>
+      <section><h2>Directions</h2><ol class="steps">${lines(r.steps).map((s, i) => isSec(s) ? `<li class="ssec">${esc(s.replace(/:$/, ""))}</li>` : `<li data-s="${i}" class="${ch.s.has(i) ? "done" : ""}"><div><span>${esc(s)}</span>${uses[i].length ? `<div class="uses">${uses[i].map((u) => `<span class="use"><b>${esc(u.amount)}</b> ${esc(u.label)}${u.pack ? ` (${esc(u.pack)})` : ""}</span>`).join("")}</div>` : ""}</div></li>`).join("")}</ol>
         ${r.notes ? `<div class="notes"><b>Notes</b><br>${esc(r.notes)}</div>` : ""}
         <section class="log" id="log">
           <h2>Our notes</h2>
@@ -498,8 +504,8 @@ function wireNotes(r) {
 function recipeText(r) {
   const m = curMult(r);
   const ing = scaledIngredients(r, m).map((x) => (x.header ? "\n" + x.header + ":" : "• " + (x.amount ? x.amount + " " : "") + x.rest + (x.pack ? " (" + x.pack + ")" : ""))).join("\n");
-  const st = lines(r.steps).map((s, i) => i + 1 + ". " + s).join("\n");
-  return `${r.title}\nMakes ${fmtN(r.servings * m)} ${r.yieldLabel || "servings"}${m !== 1 ? ` (${fmtN(m)}× the original)` : ""}${r.time ? " · " + r.time : ""}\n\nINGREDIENTS\n${ing}\n\nDIRECTIONS\n${st}${r.notes ? "\n\nNOTES\n" + r.notes : ""}\n\n${location.origin}/#recipe-${r.id}`;
+  let k = 0; const st = lines(r.steps).map((s) => (isSec(s) ? "\n" + s : ++k + ". " + s)).join("\n");
+  return `${r.title}\nMakes ${fmtN(r.servings * m)} ${r.yieldLabel || "servings"}${m !== 1 ? ` (${fmtN(m)}× the original)` : ""}${r.time ? " · " + r.time : ""}\n\nINGREDIENTS\n${ing}\n\nDIRECTIONS\n${st}${r.notes ? "\n\nNOTES\n" + r.notes : ""}${r.credit ? "\n\n" + r.credit + (r.source ? " – " + r.source : "") : ""}\n\n${location.origin}/#recipe-${r.id}`;
 }
 async function shareRecipe(r) {
   const url = location.origin + "/#recipe-" + r.id;
@@ -566,10 +572,18 @@ $("addGo").onclick = async () => {
   $("addErr").hidden = true;
   const text = $("pasteIn").value.trim(), link = $("linkIn").value.trim();
   if (addMode === "photo" && !photoFiles.length) { $("addErr").textContent = "Choose at least one photo."; $("addErr").hidden = false; return; }
-  if (addMode === "text" && !text) {
-    $("addErr").textContent = link ? "Paste the recipe text too. The app can't open websites itself. You can also take a screenshot and use Photo instead." : "Paste the recipe text first.";
-    $("addErr").hidden = false; return;
+  const pastedLink = !link && /^https?:\/\/\S+$/.test(text) ? text : "";
+  if (addMode === "text" && (link || pastedLink) && (!text || pastedLink)) {
+    $("addGo").disabled = true; $("addBusy").hidden = false; $("addText").hidden = true;
+    try {
+      const d = await api("/api/import", { url: link || pastedLink });
+      recipes = (await api("/api/recipes")).recipes;
+      $("addDlg").close(); location.hash = "recipe-" + d.id;
+      toast(d.duplicate ? "That recipe is already in your book." : "Recipe added.");
+    } catch (err) { $("addBusy").hidden = true; addShow("text"); $("addErr").textContent = err.message; $("addErr").hidden = false; }
+    return;
   }
+  if (addMode === "text" && !text) { $("addErr").textContent = "Paste the recipe text or a link first."; $("addErr").hidden = false; return; }
   $("addGo").disabled = true; $("addBusy").hidden = false; $("addPhoto").hidden = $("addText").hidden = true;
   try {
     const blobs = addMode === "photo" ? await Promise.all(photoFiles.map((f) => shrink(f, 1568))) : [];
