@@ -47,6 +47,22 @@ function clean(r) {
   };
 }
 
+const TAGS = ["loved", "again", "tweak", "never"];
+function cleanNote(n) {
+  if (!n || typeof n !== "object") return null;
+  const text = str(n.text, 4000).trim();
+  const audio = str(n.audio, 200);
+  const tag = TAGS.includes(n.tag) ? n.tag : "";
+  const note = {
+    id: /^[a-z0-9-]{3,60}$/.test(n.id || "") ? n.id : Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    at: Number(n.at) || Date.now(),
+    tag, text,
+    audio: /^\/api\/photo\/[a-z0-9-]+$/.test(audio) ? audio : "",
+    secs: Math.max(0, Math.min(3600, Math.round(Number(n.secs) || 0))),
+  };
+  return note.text || note.audio || note.tag ? note : null;
+}
+
 async function loadBook(s) {
   let book = await s.get("book", { type: "json" });
   if (!book || !Array.isArray(book.recipes)) {
@@ -73,7 +89,20 @@ export default async (req) => {
     const r = clean(body.recipe);
     if (!r) return json({ error: "That recipe is missing a name." }, 400);
     const i = book.recipes.findIndex((x) => x.id === r.id);
+    // Notes are added and removed on their own, so an edit never wipes them.
+    const keepLog = i >= 0 ? book.recipes[i].log : Array.isArray(body.recipe.log) ? body.recipe.log.map(cleanNote).filter(Boolean) : [];
+    r.log = keepLog || [];
     if (i >= 0) { r.createdAt = book.recipes[i].createdAt; book.recipes[i] = r; } else book.recipes.push(r);
+  } else if (body.action === "add-note" || body.action === "delete-note") {
+    const r = book.recipes.find((x) => x.id === body.id);
+    if (!r) return json({ error: "That recipe is gone." }, 404);
+    r.log = Array.isArray(r.log) ? r.log : [];
+    if (body.action === "add-note") {
+      const n = cleanNote(body.note);
+      if (!n) return json({ error: "Add a few words, a voice note, or pick a label first." }, 400);
+      r.log.unshift(n);
+      r.log = r.log.slice(0, 200);
+    } else r.log = r.log.filter((n) => n.id !== body.noteId);
   } else if (body.action === "delete") {
     book.recipes = book.recipes.filter((x) => x.id !== body.id);
   } else {

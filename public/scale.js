@@ -79,6 +79,8 @@
     const m = (words[i] || "").match(/^([A-Za-z]+)(.*)$/);
     if (!m) return rest;
     const w = m[1].toLowerCase();
+    const next = (words[i + 1] || "").toLowerCase().replace(/[^a-z]/g, "");
+    if (PLURAL[next] || SINGULAR[next]) return rest; // "egg yolks", "egg whites": leave the first word alone
     if (n > 1 && PLURAL[w] && PLURAL[w] !== w) words[i] = PLURAL[w] + m[2];
     else if (n <= 1 && SINGULAR[w] && SINGULAR[w] !== w) words[i] = SINGULAR[w] + m[2];
     return words.join(" ");
@@ -110,7 +112,7 @@
       const typed = raw.slice(0, raw.length - m[3].length).trim();
       amount = unit ? (typed + " " + m[3].match(unit[0])[0]).trim() : typed;
       if (extra) amount += " + " + extra.amount;
-      return { amount, rest };
+      return { amount, rest, cups: unit && unit[2] === "vol" && !extra ? (q1 * unit[3]) / 48 : null };
     }
     const a = q1 * mult, b = q2 !== null ? q2 * mult : null;
     if (unit && unit[2] !== "floz") {
@@ -128,7 +130,7 @@
       rest = fixPlural(rest, b ?? a);
     }
     if (extra) amount += " + " + extra.amount;
-    return { amount, rest };
+    return { amount, rest, cups: unit && unit[2] === "vol" && !extra ? (a * unit[3]) / 48 : null };
   }
 
   root.Scale = { scaleLine, frac, val };

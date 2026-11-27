@@ -24,7 +24,7 @@
 --line:light-dark(#ece2da,#33281f);--card:light-dark(#ffffff,#211913);--tint:light-dark(#fbf3ee,#2a2019);
 --tomato:light-dark(#c8341c,#e2553a);--basil:light-dark(#2d7a35,#6cc070);--saffron:#f2b51b;--on:#fff}
 *{box-sizing:border-box;min-width:0}
-html,body{margin:0}
+html,body{margin:0;max-width:100%;overflow-x:hidden}
 body{background:var(--bg);color:var(--ink);font:16px/1.55 Figtree,system-ui,sans-serif;overflow-x:clip;-webkit-tap-highlight-color:transparent}
 h1,h2,h3{font-family:"Young Serif",Georgia,serif;font-weight:400;line-height:1.08;letter-spacing:-.01em;margin:0}
 button,input,textarea,select{font:inherit;color:inherit}
@@ -97,6 +97,10 @@ button{cursor:pointer}
 .steps li{counter-increment:s;display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer}
 .steps li::before{content:counter(s);font-family:"Young Serif",serif;font-size:22px;color:var(--tomato);line-height:1.2}
 .steps li.done{color:var(--soft)}
+.pack{color:var(--soft);white-space:nowrap}
+.uses{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.use{font-size:14px;line-height:1.3;background:var(--tint);border-radius:8px;padding:4px 9px;max-width:100%;overflow-wrap:anywhere}
+.steps li.done .use{opacity:.6}
 .steps li.done::before{content:"✓";color:var(--basil)}
 .notes{background:var(--tint);border-radius:12px;padding:14px 16px;margin-top:18px;white-space:pre-wrap}
 .src{margin-top:14px;overflow-wrap:anywhere}
@@ -133,6 +137,25 @@ textarea.in{min-height:150px;resize:vertical;line-height:1.5}
 .photoedit{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .photoedit img{width:96px;height:72px;object-fit:cover;border-radius:10px}
 @media(max-width:600px){.toast{bottom:24px}}
+.log{margin-top:28px;border-top:2px solid var(--line);padding-top:18px}
+.log h2{margin-bottom:4px}
+.tagrow{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.tagrow .chip[aria-pressed=true]{background:var(--tomato);border-color:var(--tomato);color:#fff}
+.rec{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+.rec .btn.live{background:var(--tomato);border-color:var(--tomato);color:#fff}
+.rec audio{max-width:100%;height:40px}
+.dot{width:10px;height:10px;border-radius:50%;background:#fff;animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.3}}
+@media(prefers-reduced-motion:reduce){.dot{animation:none}}
+.notes-list{list-style:none;margin:18px 0 0;padding:0}
+.notes-list li{padding:12px 0;border-top:1px solid var(--line)}
+.nhead{display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--soft);font-size:14px}
+.ntag{display:inline-block;font-size:13px;font-weight:700;padding:2px 10px;border-radius:999px;margin-right:6px;color:#fff}
+.ntag.loved{background:#c8341c}.ntag.again{background:#2d7a35}.ntag.tweak{background:#b07a10}.ntag.never{background:#555}
+.ntext{white-space:pre-wrap;margin-top:6px}
+.notes-list audio{width:100%;max-width:420px;height:40px;margin-top:8px}
+.ndel{border:0;background:none;color:var(--soft);min-height:36px;padding:0 6px}
+.badge{position:absolute;left:8px;top:8px;z-index:1;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;color:#fff}
 [hidden]{display:none!important}
 @media(max-width:600px){.row{grid-template-columns:minmax(0,1fr)}.band .btn span{display:none}.acts .btn{padding:10px 13px}}
 @media print{.band,.tools,.acts,.scaler,.back,.fav,.toast{display:none!important}body{background:#fff;color:#000}.ingcard{background:none;padding:0}.cols{grid-template-columns:1fr 1.4fr}}
@@ -227,6 +250,8 @@ const ICON = {
 };
 const TINTS = ["#c8341c", "#d9961a", "#2d7a35", "#7b3f6e", "#a8642a", "#2f6f8f"];
 const tint = (s) => { let h = 0; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return TINTS[h % TINTS.length]; };
+const TAGS = [["loved", "Loved it"], ["again", "Make again"], ["tweak", "Needs changes"], ["never", "Don't make again"]];
+const TAGNAME = Object.fromEntries(TAGS);
 const MULTS = [[0.5, "½×"], [1, "1×"], [1.5, "1½×"], [2, "2×"], [3, "3×"]];
 
 let recipes = [];
@@ -271,6 +296,7 @@ function paintHome() {
   $("grid").innerHTML = list.map((r) => `<article class="rc">
     <div class="pic" style="${r.photo ? "" : "background:" + tint(r.title)}">${r.photo ? `<img src="${esc(r.photo)}" alt="" loading="lazy">` : `<span class="ini">${esc(r.title.trim()[0] || "?")}</span>`}</div>
     <div class="body"><h3>${esc(r.title)}</h3><div class="meta">${esc(r.category)} · ${esc(fmtN(r.servings))} ${esc(r.yieldLabel || "servings")}${r.time ? " · " + esc(r.time) : ""}</div></div>
+    ${(r.log || []).find((n) => n.tag) ? (() => { const t = r.log.find((n) => n.tag).tag; return `<span class="badge ntag ${t}">${esc(TAGNAME[t])}</span>`; })() : ""}
     <a class="cardlink" href="#recipe-${esc(r.id)}" aria-label="${esc(r.title)}"></a>
     <button class="fav" data-fav="${esc(r.id)}" aria-label="Favorite" aria-pressed="${favs.has(r.id)}">${favs.has(r.id) ? ICON.heartF : ICON.heart}</button>
   </article>`).join("");
@@ -294,13 +320,61 @@ document.addEventListener("click", (e) => {
 });
 
 /* ---------- recipe view ---------- */
+/* Which ingredients (and how much) each step uses, so you don't have to scroll up while cooking. */
+const STOP = new Set("a an and or of the for to into with in on at as by plus about optional taste divided more extra fresh large medium small whole cold warm hot room temperature chopped diced minced sliced melted softened beaten packed sifted finely roughly cup cups tablespoon tablespoons teaspoon teaspoons tbsp tsp oz ounce ounces lb lbs pound pounds g gram grams kg ml l liter liters can".split(" "));
+function stem(w) {
+  w = w.toLowerCase().replace(/[^a-z֐-׿]/g, "");
+  if (w.length > 4 && w.endsWith("ies")) return w.slice(0, -3) + "y";
+  if (w.length > 4 && /(oes|ches|shes|xes|sses)$/.test(w)) return w.slice(0, -2);
+  if (w.length > 3 && w.endsWith("s") && !w.endsWith("ss")) return w.slice(0, -1);
+  return w;
+}
+const words = (t) => String(t).split(/[\s,;:.()\/–-]+/).map(stem).filter((w) => w.length > 1);
+function stepAmounts(steps, ings) {
+  const items = [];
+  ings.forEach((x, i) => {
+    if (x.header || !x.amount) return;
+    const label = x.rest.split(/,|\(/)[0].trim();
+    const toks = words(x.rest);
+    const core = words(label).filter((w) => !STOP.has(w));
+    if (!core.length) return;
+    items.push({ i, amount: x.amount, pack: x.pack, label, head: core[core.length - 1], toks: new Set(toks) });
+  });
+  const used = new Set();
+  return steps.map((st) => {
+    const EXC = /\b(except|without|but not|reserving|saving)\b[^.;]*/gi;
+    const excluded = new Set(words((st.match(EXC) || []).join(" ")));
+    const text = st.replace(EXC, " ");
+    if (/\b(everything|all (of )?the ingredients|all ingredients)\b/i.test(text)) { items.forEach((it) => { if (!excluded.has(it.head)) used.add(it.i); }); return []; }
+    const sw = new Set(words(text));
+    const groups = {};
+    for (const it of items) if (sw.has(it.head)) (groups[it.head] ||= []).push(it);
+    const picks = Object.values(groups).filter((g) => g.some((it) => !used.has(it.i)) || g.length > 1).map((g) => {
+      const score = (it) => [...it.toks].filter((t) => sw.has(t)).length;
+      const best = Math.max(...g.map(score));
+      const top = g.filter((it) => score(it) === best);
+      return top.find((it) => !used.has(it.i)) || top[0];
+    });
+    picks.forEach((p) => used.add(p.i));
+    return picks.sort((a, b) => a.i - b.i);
+  });
+}
 function lines(s) { return String(s || "").split("\n").map((x) => x.trim()).filter(Boolean); }
-function scaledIngredients(r, m) { return lines(r.ingredients).map((l) => window.Scale.scaleLine(l, m)).filter(Boolean); }
+// How much of a store package an amount is, e.g. 2 cups powdered sugar ≈ ½ box (a 1-lb box holds about 3¾ cups, per Domino).
+const PACKS = [[/\b(powdered|confectioners?'?|icing|10-?x)\b.*\bsugar\b/i, 3.75, "box", "boxes"]];
+function packHint(x) {
+  if (!x || x.cups == null || x.cups < 0.2) return "";
+  const p = PACKS.find(([re]) => re.test(x.rest)); if (!p) return "";
+  const n = Math.round((x.cups / p[1]) * 4) / 4; if (!n) return "";
+  return "≈ " + window.Scale.frac(n) + " " + (n > 1 ? p[3] : p[2]);
+}
+function scaledIngredients(r, m) { return lines(r.ingredients).map((l) => window.Scale.scaleLine(l, m)).filter(Boolean).map((x) => (x.header ? x : { ...x, pack: packHint(x) })); }
 function curMult(r) { return mults[r.id] || 1; }
 
 function paintView(r) {
   const m = curMult(r), serv = r.servings * m, ch = checks[r.id] || (checks[r.id] = { i: new Set(), s: new Set() });
   const ings = scaledIngredients(r, m);
+  const uses = stepAmounts(lines(r.steps), ings);
   const src = /^https?:\/\//.test(r.source || "") ? r.source : "";
   const multOn = (v) => Math.abs(m - v) < 1e-9;
   $("view").innerHTML = `
@@ -326,9 +400,26 @@ function paintView(r) {
     <div class="cols">
       <section class="ingcard"><h2>Ingredients</h2><ul class="ings">${ings.map((x, i) => x.header
         ? `<li class="sec">${esc(x.header)}</li>`
-        : `<li><label><input type="checkbox" data-i="${i}" ${ch.i.has(i) ? "checked" : ""}><span class="${ch.i.has(i) ? "done" : ""}">${x.amount ? `<b>${esc(x.amount)}</b> ` : ""}${esc(x.rest)}</span></label></li>`).join("")}</ul></section>
-      <section><h2>Directions</h2><ol class="steps">${lines(r.steps).map((s, i) => `<li data-s="${i}" class="${ch.s.has(i) ? "done" : ""}"><span>${esc(s)}</span></li>`).join("")}</ol>
+        : `<li><label><input type="checkbox" data-i="${i}" ${ch.i.has(i) ? "checked" : ""}><span class="${ch.i.has(i) ? "done" : ""}">${x.amount ? `<b>${esc(x.amount)}</b> ` : ""}${esc(x.rest)}${x.pack ? ` <span class="pack">(${esc(x.pack)})</span>` : ""}</span></label></li>`).join("")}</ul></section>
+      <section><h2>Directions</h2><ol class="steps">${lines(r.steps).map((s, i) => `<li data-s="${i}" class="${ch.s.has(i) ? "done" : ""}"><div><span>${esc(s)}</span>${uses[i].length ? `<div class="uses">${uses[i].map((u) => `<span class="use"><b>${esc(u.amount)}</b> ${esc(u.label)}${u.pack ? ` (${esc(u.pack)})` : ""}</span>`).join("")}</div>` : ""}</div></li>`).join("")}</ol>
         ${r.notes ? `<div class="notes"><b>Notes</b><br>${esc(r.notes)}</div>` : ""}
+        <section class="log" id="log">
+          <h2>Our notes</h2>
+          <p class="hint">How did it go? Pick a label, type, or record a voice note.</p>
+          <div class="tagrow">${TAGS.map(([k, l]) => `<button class="chip" data-tag="${k}" aria-pressed="${draftNote.tag === k}">${l}</button>`).join("")}</div>
+          <textarea class="in" id="noteText" style="min-height:80px" placeholder="e.g. Kids loved it. Next time use less sugar.">${esc(draftNote.text)}</textarea>
+          <div class="rec">
+            <button class="btn ${rec ? "live" : ""}" id="recBtn">${rec ? '<span class="dot"></span>Stop recording <span id="recT">0:00</span>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>' + (draftNote.blob ? "Record again" : "Record voice note")}</button>
+            ${draftNote.blob ? `<audio controls src="${esc(draftNote.url)}"></audio><button class="btn" id="recDrop">Remove recording</button>` : ""}
+          </div>
+          <div class="foot" style="justify-content:flex-start;margin-top:6px"><button class="btn primary" id="noteSave">Save note</button></div>
+          <ul class="notes-list">${(r.log || []).map((n) => `<li>
+            <div class="nhead"><span>${n.tag ? `<span class="ntag ${esc(n.tag)}">${esc(TAGNAME[n.tag] || "")}</span>` : ""}${esc(new Date(n.at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }))}</span>
+            <button class="ndel" data-del="${esc(n.id)}" aria-label="Delete note">Delete</button></div>
+            ${n.text ? `<div class="ntext">${esc(n.text)}</div>` : ""}
+            ${/^\/api\/photo\/[a-z0-9-]+$/.test(n.audio || "") ? `<audio controls preload="none" src="${esc(n.audio)}"></audio>` : ""}
+          </li>`).join("")}</ul>
+        </section>
         ${src ? `<p class="src">Original recipe: <a href="${esc(src)}" target="_blank" rel="noopener">${esc(src.replace(/^https?:\/\/(www\.)?/, "").slice(0, 60))}</a></p>` : ""}
       </section>
     </div>`;
@@ -341,6 +432,7 @@ function paintView(r) {
   $("sIn").onchange = (e) => { const v = window.Scale.val(e.target.value) || parseFloat(e.target.value); if (v > 0) setM(v / r.servings); else e.target.value = fmtN(serv); };
   $("view").querySelectorAll("[data-i]").forEach((c) => (c.onchange = () => { const i = +c.dataset.i; c.checked ? ch.i.add(i) : ch.i.delete(i); c.nextElementSibling.className = c.checked ? "done" : ""; }));
   $("view").querySelectorAll("[data-s]").forEach((li) => (li.onclick = () => { const i = +li.dataset.s; ch.s.has(i) ? ch.s.delete(i) : ch.s.add(i); li.classList.toggle("done"); }));
+  wireNotes(r);
   $("shareBtn").onclick = () => shareRecipe(r);
   $("copyBtn").onclick = () => copyText(recipeText(r));
   $("printBtn").onclick = () => window.print();
@@ -348,9 +440,64 @@ function paintView(r) {
   if (editor) { $("editBtn").onclick = () => openEditor(r); $("delBtn").onclick = () => delRecipe(r); }
 }
 
+/* ---------- notes & voice notes ---------- */
+let draftNote = { id: "", tag: "", text: "", blob: null, url: "", secs: 0 }, rec = null;
+function resetDraft(id) { if (draftNote.url) URL.revokeObjectURL(draftNote.url); draftNote = { id, tag: "", text: "", blob: null, url: "", secs: 0 }; }
+function wireNotes(r) {
+  if (draftNote.id !== r.id && !rec) resetDraft(r.id);
+  const repaint = () => { const y = window.scrollY; paintView(r); window.scrollTo(0, y); };
+  $("view").querySelectorAll("[data-tag]").forEach((b) => (b.onclick = () => { draftNote.tag = draftNote.tag === b.dataset.tag ? "" : b.dataset.tag; draftNote.text = $("noteText").value; repaint(); }));
+  $("noteText").oninput = (e) => (draftNote.text = e.target.value);
+  $("recBtn").onclick = async () => {
+    draftNote.text = $("noteText").value;
+    if (rec) { rec.mr.stop(); return; }
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) { toast("This browser can't record audio. Try Chrome, or use your keyboard's mic button to dictate."); return; }
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch { toast("Microphone is blocked. Allow it for this site in your browser settings."); return; }
+    const type = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"].find((t) => MediaRecorder.isTypeSupported?.(t)) || "";
+    const mr = new MediaRecorder(stream, type ? { mimeType: type, audioBitsPerSecond: 32000 } : undefined);
+    const chunks = [], started = Date.now();
+    mr.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    mr.onstop = () => {
+      stream.getTracks().forEach((t) => t.stop()); clearInterval(rec?.timer); rec = null;
+      const blob = new Blob(chunks, { type: (mr.mimeType || type || "audio/webm").split(";")[0] });
+      if (draftNote.url) URL.revokeObjectURL(draftNote.url);
+      Object.assign(draftNote, { blob, url: URL.createObjectURL(blob), secs: Math.round((Date.now() - started) / 1000) });
+      repaint();
+    };
+    mr.start(1000);
+    rec = { mr, timer: setInterval(() => { const t = Math.round((Date.now() - started) / 1000); if ($("recT")) $("recT").textContent = Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); if (t >= 300) mr.stop(); }, 500) };
+    repaint();
+  };
+  if ($("recDrop")) $("recDrop").onclick = () => { draftNote.text = $("noteText").value; URL.revokeObjectURL(draftNote.url); Object.assign(draftNote, { blob: null, url: "", secs: 0 }); repaint(); };
+  $("noteSave").onclick = async () => {
+    draftNote.text = $("noteText").value.trim();
+    if (rec) { toast("Stop the recording first."); return; }
+    if (!draftNote.text && !draftNote.blob && !draftNote.tag) { toast("Pick a label, type something, or record a voice note."); return; }
+    $("noteSave").disabled = true;
+    try {
+      let audio = "";
+      if (draftNote.blob) {
+        const res = await fetch("/api/photo", { method: "POST", headers: { "content-type": draftNote.blob.type || "audio/webm" }, body: draftNote.blob });
+        const d = await res.json().catch(() => ({})); if (!res.ok) throw new Error(d.error || "Couldn't upload the recording.");
+        audio = d.url;
+      }
+      const d = await api("/api/recipes", { action: "add-note", id: r.id, note: { tag: draftNote.tag, text: draftNote.text, audio, secs: draftNote.secs, at: Date.now() } });
+      recipes = d.recipes; resetDraft(r.id); route(); toast("Note saved.");
+      document.getElementById("log")?.scrollIntoView({ block: "start" });
+    } catch (e) { toast(e.message); if ($("noteSave")) $("noteSave").disabled = false; }
+  };
+  $("view").querySelectorAll("[data-del]").forEach((b) => (b.onclick = async () => {
+    if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Tap again to delete"; setTimeout(() => { if (b.isConnected) { b.dataset.armed = ""; b.textContent = "Delete"; } }, 4000); return; }
+    try { const d = await api("/api/recipes", { action: "delete-note", id: r.id, noteId: b.dataset.del }); recipes = d.recipes; const y = window.scrollY; route(); window.scrollTo(0, y); toast("Note deleted."); }
+    catch (e) { toast(e.message); }
+  }));
+}
+
 function recipeText(r) {
   const m = curMult(r);
-  const ing = scaledIngredients(r, m).map((x) => (x.header ? "\n" + x.header + ":" : "• " + (x.amount ? x.amount + " " : "") + x.rest)).join("\n");
+  const ing = scaledIngredients(r, m).map((x) => (x.header ? "\n" + x.header + ":" : "• " + (x.amount ? x.amount + " " : "") + x.rest + (x.pack ? " (" + x.pack + ")" : ""))).join("\n");
   const st = lines(r.steps).map((s, i) => i + 1 + ". " + s).join("\n");
   return `${r.title}\nMakes ${fmtN(r.servings * m)} ${r.yieldLabel || "servings"}${m !== 1 ? ` (${fmtN(m)}× the original)` : ""}${r.time ? " · " + r.time : ""}\n\nINGREDIENTS\n${ing}\n\nDIRECTIONS\n${st}${r.notes ? "\n\nNOTES\n" + r.notes : ""}\n\n${location.origin}/#recipe-${r.id}`;
 }

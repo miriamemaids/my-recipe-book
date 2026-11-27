@@ -1,6 +1,6 @@
 import { json, store } from "../lib/shared.mjs";
 
-const TYPES = ["image/jpeg", "image/png", "image/webp"];
+const TYPES = ["image/jpeg", "image/png", "image/webp", "audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/aac", "audio/wav"];
 
 export default async (req, context) => {
   const s = store("photos");
@@ -20,9 +20,9 @@ export default async (req, context) => {
 
   if (req.method === "POST") {
     const type = (req.headers.get("content-type") || "").split(";")[0];
-    if (!TYPES.includes(type)) return json({ error: "Use a JPEG, PNG or WebP photo." }, 400);
+    if (!TYPES.includes(type)) return json({ error: "That file type isn't supported." }, 400);
     const data = await req.arrayBuffer();
-    if (data.byteLength > 4 * 1024 * 1024) return json({ error: "Photo is too large." }, 413);
+    if (data.byteLength > 5.5 * 1024 * 1024) return json({ error: "That file is too large. Keep voice notes under about 5 minutes." }, 413);
     const id = Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
     await s.set(id, data, { metadata: { type } });
     return json({ url: "/api/photo/" + id });
