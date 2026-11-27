@@ -46,7 +46,9 @@ button{cursor:pointer}
 .srow{display:flex;gap:10px;align-items:center}
 .srow .search{flex:1}
 .addb{min-height:46px;padding:10px 18px;font-size:16px}
-.chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}
+.crow{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.crow+.crow{margin-top:8px}
+.chips{display:block;padding:10px 0 2px;scrollbar-width:none}
 .chip{flex:none;min-height:38px;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-weight:500;font-size:15px}
 .chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr));gap:16px;padding:18px 0 40px}
@@ -70,6 +72,7 @@ button{cursor:pointer}
 .hero img{width:100%;max-height:340px;object-fit:cover;display:block}
 .rtitle{font-size:clamp(30px,6vw,46px);margin:8px 0 6px;text-wrap:balance}
 .tags{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 0}
+button.tag{border:0;cursor:pointer;font:inherit;font-size:13px;min-height:30px}
 .tag{font-size:13px;padding:3px 10px;border-radius:999px;background:var(--tint);color:var(--soft)}
 .acts{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
 .scaler{position:sticky;top:0;z-index:4;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
@@ -259,7 +262,7 @@ const MULTS = [[0.5, "½×"], [1, "1×"], [1.5, "1½×"], [2, "2×"], [3, "3×"]
 
 let recipes = [];
 const editor = true;
-let favs = new Set(store.get("rb-favs", [])), filter = { q: "", cat: "", fav: false }, mults = {}, checks = {};
+let favs = new Set(store.get("rb-favs", [])), filter = { q: "", cat: "", fav: false, kind: "" }, mults = {}, checks = {};
 let editing = null, pendingPhoto = null, removePhoto = false, wake = null, wantWake = false;
 
 /* ---------- server ---------- */
@@ -284,16 +287,43 @@ async function load() {
 
 /* ---------- home ---------- */
 const cats = () => [...new Set(recipes.map((r) => r.category))].sort((a, b) => a.localeCompare(b));
+
+/* Quick filters. A recipe also matches when you give it that tag yourself (e.g. tag "shabbos"). */
+const mins = (t) => { const h = /(\d+(?:\.\d+)?)\s*h/i.exec(t || ""), m = /(\d+)\s*m/i.exec(t || ""); return (h ? +h[1] * 60 : 0) + (m ? +m[1] : 0); };
+const about = (r) => [r.title, r.category, (r.tags || []).join(" "), r.notes].join(" ").toLowerCase();
+const SMART = [
+  ["shabbos", "Shabbos", (r) => /shab+[oa]s|shabbat|cholent|chulent|kugel|challah|yapchik|gefilte|kishke|yom tov/.test(about(r))],
+  ["cookies", "Cookies", (r) => /cookie|biscotti|rugel|mandel|brownie|blondie/.test([r.title, r.category, (r.tags || []).join(" ")].join(" ").toLowerCase())],
+  ["passover", "Passover", (r) => /passover|pesach/.test(about(r))],
+  ["chanukah", "Chanukah", (r) => /chanuk|hanuk|latke|sufgan|donut|doughnut/.test(about(r))],
+  ["quick", "Quick (30 min)", (r) => { const n = mins(r.time); return n > 0 && n <= 30; }],
+];
+const MEAT = /\b(beef|chicken|turkey|veal|lamb|pastrami|salami|corned|flanken|brisket|ribs?|steaks?|liver|deli|meat|schnitzel|shnitzel|cutlets?|wings?|drumsticks?|bones|marrow|duck(?! sauce)|hot dogs?|franks|sausages?|london broil|minute roast|kishke|short ribs)\b/;
+const DAIRY = /\b(cheese|milk|butter|cream|yogurt|yoghurt|ricotta|mozzarella|parmesan|feta|halloumi|cottage|ghee|lox spread)\b/;
+const NOT_DAIRY = /non-?dairy|pareve|parve|dairy[- ]free|coconut|almond|oat milk|soy|rice milk|whipped topping|whip topping|margarine|peanut butter|nut butter|apple butter|cocoa butter|cream of tartar|ice cream sticks/;
+function kind(r) {
+  const t = (r.tags || []).join(" ").toLowerCase();
+  if (/\b(meat|fleishig|fleishigs)\b/.test(t)) return "meat";
+  if (/\b(dairy|milchig|milchigs)\b/.test(t)) return "dairy";
+  if (/\b(pareve|parve)\b/.test(t)) return "pareve";
+  const lines = String(r.ingredients || "").toLowerCase().split("\n");
+  if (lines.some((l) => MEAT.test(l) && !/chicken soup mix|consomm|meatless|imitation|soy meat/.test(l))) return "meat";
+  if (lines.some((l) => DAIRY.test(l) && !NOT_DAIRY.test(l))) return "dairy";
+  return "pareve";
+}
+const KINDS = [["meat", "Meat"], ["dairy", "Dairy"], ["pareve", "Pareve"]];
 function paintHome() {
   const n = recipes.length;
   $("count").textContent = n + (n === 1 ? " recipe" : " recipes") + " · " + cats().length + (cats().length === 1 ? " category" : " categories");
-  const chips = [["", "All"], ["♥", "Favorites"], ...cats().map((c) => [c, c])];
-  $("chips").innerHTML = chips.map(([v, l]) => {
-    const on = v === "♥" ? filter.fav : !filter.fav && filter.cat === v;
-    return `<button class="chip" data-cat="${esc(v)}" aria-pressed="${on}">${v === "♥" ? "♥ " : ""}${esc(l)}</button>`;
-  }).join("");
+  const row1 = [["", "All"], ["♥", "♥ Favorites"], ...KINDS.map(([k, l]) => ["k:" + k, l])];
+  const row2 = [...SMART.map(([k, l]) => ["s:" + k, l]), ...cats().map((c) => [c, c])];
+  const chip = ([v, l], on) => `<button class="chip" data-cat="${esc(v)}" aria-pressed="${on}">${esc(l)}</button>`;
+  $("chips").innerHTML = `<div class="crow">${row1.map((c) => chip(c, c[0] === "" ? !filter.fav && !filter.kind && !filter.cat : c[0] === "♥" ? filter.fav : filter.kind === c[0].slice(2))).join("")}</div>
+    <div class="crow">${row2.map((c) => chip(c, filter.cat === c[0])).join("")}</div>`;
   const q = filter.q.toLowerCase().trim();
-  const list = recipes.filter((r) => (!filter.fav || favs.has(r.id)) && (filter.fav || !filter.cat || r.category === filter.cat) &&
+  const smart = filter.cat.startsWith("s:") ? SMART.find((x) => x[0] === filter.cat.slice(2)) : null;
+  const list = recipes.filter((r) => (!filter.fav || favs.has(r.id)) && (!filter.kind || kind(r) === filter.kind) &&
+    (!filter.cat || (smart ? smart[2](r) : r.category === filter.cat)) &&
     (!q || [r.title, r.ingredients, r.category, (r.tags || []).join(" "), r.notes, r.credit].join(" ").toLowerCase().includes(q)))
     .sort((a, b) => a.title.localeCompare(b.title));
   $("grid").innerHTML = list.map((r) => `<article class="rc">
@@ -311,7 +341,10 @@ const fmtN = (n) => window.Scale.frac(n);
 $("chips").onclick = (e) => {
   const b = e.target.closest("[data-cat]"); if (!b) return;
   const v = b.dataset.cat;
-  if (v === "♥") { filter.fav = !filter.fav; filter.cat = ""; } else { filter.fav = false; filter.cat = v; }
+  if (v === "") Object.assign(filter, { fav: false, kind: "", cat: "" });
+  else if (v === "♥") filter.fav = !filter.fav;
+  else if (v.startsWith("k:")) filter.kind = filter.kind === v.slice(2) ? "" : v.slice(2);
+  else filter.cat = filter.cat === v ? "" : v;
   paintHome();
 };
 $("q").oninput = (e) => { filter.q = e.target.value; paintHome(); };
@@ -386,9 +419,9 @@ function paintView(r) {
     <button class="btn back" id="backBtn">‹ All recipes</button>
     ${r.photo ? `<div class="hero"><img src="${esc(r.photo)}" alt=""></div>` : ""}
     <h1 class="rtitle">${esc(r.title)}</h1>
-    <div class="meta">${esc(r.category)}${r.time ? " · " + esc(r.time) : ""}</div>
+    <div class="meta">${esc(r.category)} · ${esc({ meat: "Meat", dairy: "Dairy", pareve: "Pareve" }[kind(r)])}${r.time ? " · " + esc(r.time) : ""}</div>
     ${r.credit ? `<p class="credit">${src ? `<a href="${esc(src)}" target="_blank" rel="noopener">${esc(r.credit)}</a>` : esc(r.credit)}</p>` : ""}
-    ${(r.tags || []).length ? `<div class="tags">${r.tags.map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>` : ""}
+    ${(r.tags || []).length ? `<div class="tags">${r.tags.map((t) => `<button class="tag" data-tagq="${esc(t)}">${esc(t)}</button>`).join("")}</div>` : ""}
     <div class="acts">
       <button class="btn" data-fav="${esc(r.id)}">${favs.has(r.id) ? ICON.heartF + "Saved" : ICON.heart + "Save"}</button>
       <button class="btn" id="shareBtn">${ICON.share}Share</button>
@@ -439,6 +472,7 @@ function paintView(r) {
   $("view").querySelectorAll("[data-i]").forEach((c) => (c.onchange = () => { const i = +c.dataset.i; c.checked ? ch.i.add(i) : ch.i.delete(i); c.nextElementSibling.className = c.checked ? "done" : ""; }));
   $("view").querySelectorAll("[data-s]").forEach((li) => (li.onclick = () => { const i = +li.dataset.s; ch.s.has(i) ? ch.s.delete(i) : ch.s.add(i); li.classList.toggle("done"); }));
   wireNotes(r);
+  $("view").querySelectorAll("[data-tagq]").forEach((b) => (b.onclick = () => { filter = { q: b.dataset.tagq, cat: "", fav: false, kind: "" }; $("q").value = b.dataset.tagq; location.hash = ""; }));
   $("shareBtn").onclick = () => shareRecipe(r);
   $("copyBtn").onclick = () => copyText(recipeText(r));
   $("printBtn").onclick = () => window.print();
