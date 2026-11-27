@@ -14,3 +14,5 @@ Netlify deploys this repository automatically whenever `main` changes.
 - `netlify/functions/`: recipes (saving), photo (pictures), extract (reads recipes using Netlify's AI Gateway)
 
 Recipes and photos live in Netlify Blobs, separate from the code, so updates never touch them.
+
+Paste a recipe link (kosher.com and most recipe sites) in Add recipe to import it with credit to the original.
